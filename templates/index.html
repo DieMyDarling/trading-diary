@@ -1,0 +1,932 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Дневник трейдера - Анализ сделок</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+            background: #0f172a;
+            color: #e2e8f0;
+        }
+
+        .hero {
+            background: linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #4c1d95 100%);
+            padding: 40px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .container {
+            max-width: 100%;
+            margin: 0 auto;
+            padding: 0 24px;
+        }
+
+        .hero-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+
+        .hero h1 {
+            font-size: 28px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #fff 0%, #c084fc 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .hero p {
+            color: #94a3b8;
+            margin-top: 8px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 20px;
+            margin-top: -40px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: rgba(15, 23, 42, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 20px;
+            border: 1px solid rgba(255,255,255,0.1);
+            transition: transform 0.3s;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            border-color: rgba(139, 92, 246, 0.5);
+        }
+
+        .stat-label {
+            font-size: 13px;
+            color: #94a3b8;
+            margin-bottom: 8px;
+        }
+
+        .stat-value {
+            font-size: 28px;
+            font-weight: 700;
+            color: #f1f5f9;
+        }
+
+        .positive {
+            color: #10b981;
+        }
+
+        .negative {
+            color: #ef4444;
+        }
+
+        .search-section {
+            background: #1e293b;
+            border-radius: 20px;
+            padding: 20px;
+            margin-bottom: 24px;
+            border: 1px solid #334155;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 14px 20px;
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 12px;
+            color: #e2e8f0;
+            font-size: 16px;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: #8b5cf6;
+        }
+
+        .filters {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-top: 16px;
+        }
+
+        .filter-btn {
+            padding: 8px 20px;
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 30px;
+            color: #94a3b8;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .filter-btn:hover {
+            background: #334155;
+        }
+
+        .filter-btn.active {
+            background: #8b5cf6;
+            border-color: #8b5cf6;
+            color: white;
+        }
+
+        .trades-container {
+            background: #1e293b;
+            border-radius: 20px;
+            overflow-x: auto;
+            border: 1px solid #334155;
+        }
+
+        .trades-table {
+            min-width: 1500px;
+        }
+
+        .table-header {
+            display: grid;
+            grid-template-columns: 150px 150px 100px 110px 110px 100px 110px 1fr 150px;
+            background: #0f172a;
+            padding: 16px 20px;
+            font-weight: 600;
+            color: #94a3b8;
+            border-bottom: 1px solid #334155;
+            font-size: 12px;
+            gap: 8px;
+        }
+
+        .trade-row {
+            display: grid;
+            grid-template-columns: 150px 150px 100px 110px 110px 100px 110px 1fr 150px;
+            padding: 16px 20px;
+            border-bottom: 1px solid #334155;
+            cursor: pointer;
+            transition: background 0.2s;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .trade-row:hover {
+            background: #2d3a4e;
+        }
+
+        .trade-row.expanded {
+            background: #2d3a4e;
+        }
+
+        .profit-positive {
+            color: #10b981;
+            font-weight: 600;
+        }
+
+        .profit-negative {
+            color: #ef4444;
+            font-weight: 600;
+        }
+
+        .duration {
+            font-family: monospace;
+            font-size: 11px;
+            color: #94a3b8;
+        }
+
+        .comment-preview {
+            font-size: 12px;
+            color: #94a3b8;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .comment-preview.has-comment {
+            color: #c084fc;
+        }
+
+        .tags-preview {
+            display: flex;
+            gap: 4px;
+            flex-wrap: wrap;
+        }
+
+        .tag-preview {
+            background: #8b5cf620;
+            padding: 2px 6px;
+            border-radius: 12px;
+            font-size: 10px;
+            color: #c084fc;
+        }
+
+        .trade-details {
+            grid-column: 1 / -1;
+            margin-top: 16px;
+            padding: 20px;
+            background: #0f172a;
+            border-radius: 12px;
+            display: none;
+        }
+
+        .trade-row.expanded .trade-details {
+            display: block;
+        }
+
+        .journal-form {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #cbd5e1;
+            font-size: 12px;
+            text-transform: uppercase;
+        }
+
+        .form-group input, 
+        .form-group textarea, 
+        .form-group select {
+            width: 100%;
+            padding: 10px;
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 8px;
+            color: #e2e8f0;
+            font-size: 13px;
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .tags-input {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            padding: 8px;
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 8px;
+            min-height: 42px;
+        }
+
+        .tag {
+            background: #8b5cf6;
+            color: white;
+            padding: 4px 10px;
+            border-radius: 16px;
+            font-size: 11px;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .tag-remove {
+            cursor: pointer;
+        }
+
+        .tag-input-field {
+            flex: 1;
+            background: transparent;
+            border: none;
+            color: #e2e8f0;
+            padding: 4px;
+            outline: none;
+            font-size: 12px;
+        }
+
+        .rating {
+            display: flex;
+            gap: 6px;
+            font-size: 24px;
+            cursor: pointer;
+        }
+
+        .rating-star {
+            color: #334155;
+        }
+
+        .rating-star.active {
+            color: #fbbf24;
+        }
+
+        .emotion-select {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .emotion-option {
+            padding: 6px 12px;
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .emotion-option.selected {
+            background: #8b5cf6;
+        }
+
+        .mistake-item {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+
+        .mistake-item input {
+            flex: 1;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .btn-primary {
+            background: #8b5cf6;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #7c3aed;
+        }
+
+        .btn-danger {
+            background: #ef4444;
+            color: white;
+        }
+
+        .btn-secondary {
+            background: #334155;
+            color: #e2e8f0;
+        }
+
+        .full-width {
+            grid-column: 1 / -1;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 60px;
+            color: #94a3b8;
+        }
+
+        .edit-icon {
+            margin-left: 6px;
+            cursor: pointer;
+            opacity: 0.5;
+            font-size: 10px;
+        }
+
+        .edit-icon:hover {
+            opacity: 1;
+        }
+
+        @media (max-width: 1200px) {
+            .table-header, .trade-row {
+                font-size: 11px;
+                gap: 6px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .table-header {
+                display: none;
+            }
+            .trade-row {
+                grid-template-columns: 1fr;
+                gap: 8px;
+            }
+            .journal-form {
+                grid-template-columns: 1fr;
+            }
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="hero">
+        <div class="container">
+            <div class="hero-content">
+                <div>
+                    <h1>📊 Дневник трейдера</h1>
+                    <p>Анализ сделок и психология торговли</p>
+                </div>
+                <div>
+                    <button onclick="reloadData()" class="btn btn-secondary" style="margin-right: 10px;">🔄 Обновить</button>
+                    <button onclick="exportData()" class="btn btn-secondary">📤 Экспорт</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="stats-grid" id="statsGrid">
+            <div class="stat-card">
+                <div class="stat-label">📈 Всего сделок</div>
+                <div class="stat-value" id="totalTrades">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">💰 Чистая прибыль</div>
+                <div class="stat-value" id="netProfit">$0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">🎯 Win Rate</div>
+                <div class="stat-value" id="winRate">0%</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">⏱️ Средняя длительность</div>
+                <div class="stat-value" id="avgDuration">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">✏️ Записей в дневнике</div>
+                <div class="stat-value" id="journalCount">0</div>
+            </div>
+        </div>
+
+        <div class="search-section">
+            <input type="text" class="search-input" placeholder="🔍 Поиск по символу, тегам или комментариям..." id="searchInput">
+            <div class="filters">
+                <button class="filter-btn active" data-filter="all">📊 Все</button>
+                <button class="filter-btn" data-filter="profit">📈 Прибыльные</button>
+                <button class="filter-btn" data-filter="loss">📉 Убыточные</button>
+                <button class="filter-btn" data-filter="withJournal">✏️ С записями</button>
+                <button class="filter-btn" data-filter="withoutJournal">📝 Без записей</button>
+            </div>
+        </div>
+
+        <div class="trades-container">
+            <div class="trades-table">
+                <div class="table-header">
+                    <div>📅 Открытие</div>
+                    <div>📅 Закрытие</div>
+                    <div>⏱️ Длит.</div>
+                    <div>🔖 Символ</div>
+                    <div>📊 Тип</div>
+                    <div>📦 Объем</div>
+                    <div>💵 Результат</div>
+                    <div>💬 Комментарий</div>
+                    <div>🏷️ Теги</div>
+                </div>
+                <div id="tradesList"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let allTrades = [];
+        let currentFilter = 'all';
+        let currentSearch = '';
+
+        async function loadTrades() {
+            try {
+                const response = await fetch('/api/trades');
+                const data = await response.json();
+                allTrades = data.trades || [];
+                console.log('Загружено сделок:', allTrades.length);
+                if (allTrades.length > 0) {
+                    console.log('Пример сделки:', allTrades[0]);
+                }
+                updateStats(data.statistics);
+                renderTrades();
+                loadStatistics();
+            } catch (error) {
+                console.error('Ошибка загрузки:', error);
+            }
+        }
+
+        function updateStats(stats) {
+            if (!stats) return;
+            document.getElementById('totalTrades').textContent = stats.total_trades || 0;
+            const netProfit = stats.net_profit || 0;
+            const profitEl = document.getElementById('netProfit');
+            profitEl.innerHTML = `$${Math.abs(netProfit).toFixed(2)}`;
+            profitEl.className = netProfit > 0 ? 'stat-value positive' : netProfit < 0 ? 'stat-value negative' : 'stat-value';
+            
+            const winRate = stats.total_trades ? (stats.winning_trades / stats.total_trades * 100).toFixed(1) : 0;
+            document.getElementById('winRate').textContent = `${winRate}%`;
+            
+            // Средняя длительность
+            if (allTrades.length > 0) {
+                const tradesWithDuration = allTrades.filter(t => t.duration_seconds && t.duration_seconds > 0);
+                if (tradesWithDuration.length > 0) {
+                    const totalDuration = tradesWithDuration.reduce((sum, t) => sum + (t.duration_seconds || 0), 0);
+                    const avgSeconds = totalDuration / tradesWithDuration.length;
+                    const hours = Math.floor(avgSeconds / 3600);
+                    const minutes = Math.floor((avgSeconds % 3600) / 60);
+                    const seconds = Math.floor(avgSeconds % 60);
+                    let avgStr = '';
+                    if (hours > 0) avgStr += `${hours}ч `;
+                    if (minutes > 0) avgStr += `${minutes}м `;
+                    avgStr += `${seconds}с`;
+                    document.getElementById('avgDuration').textContent = avgStr;
+                }
+            }
+        }
+
+        async function loadStatistics() {
+            try {
+                const response = await fetch('/api/statistics');
+                const data = await response.json();
+                document.getElementById('journalCount').textContent = data.total_journal_entries || 0;
+            } catch (error) {
+                console.error('Ошибка загрузки статистики:', error);
+            }
+        }
+
+        function filterTrades() {
+            let filtered = [...allTrades];
+            
+            if (currentFilter === 'profit') {
+                filtered = filtered.filter(t => t.profit > 0);
+            } else if (currentFilter === 'loss') {
+                filtered = filtered.filter(t => t.profit < 0);
+            } else if (currentFilter === 'withJournal') {
+                filtered = filtered.filter(t => t.journal_entry);
+            } else if (currentFilter === 'withoutJournal') {
+                filtered = filtered.filter(t => !t.journal_entry);
+            }
+            
+            if (currentSearch) {
+                const searchLower = currentSearch.toLowerCase();
+                filtered = filtered.filter(t => {
+                    if (t.symbol?.toLowerCase().includes(searchLower)) return true;
+                    if (t.journal_entry?.comment?.toLowerCase().includes(searchLower)) return true;
+                    if (t.journal_entry?.tags?.some(tag => tag.toLowerCase().includes(searchLower))) return true;
+                    return false;
+                });
+            }
+            
+            return filtered;
+        }
+
+        async function saveJournalEntry(dealId, entry) {
+            try {
+                const response = await fetch(`/api/journal/${dealId}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(entry)
+                });
+                const result = await response.json();
+                if (result.success) {
+                    const trade = allTrades.find(t => (t.position_id === dealId) || (t.deal_id === dealId));
+                    if (trade) {
+                        trade.journal_entry = result.entry;
+                    }
+                    renderTrades();
+                    loadStatistics();
+                }
+            } catch (error) {
+                console.error('Ошибка сохранения:', error);
+            }
+        }
+
+        async function deleteJournalEntry(dealId) {
+            if (!confirm('Удалить запись из дневника?')) return;
+            
+            try {
+                const response = await fetch(`/api/journal/${dealId}`, {
+                    method: 'DELETE'
+                });
+                const result = await response.json();
+                if (result.success) {
+                    const trade = allTrades.find(t => (t.position_id === dealId) || (t.deal_id === dealId));
+                    if (trade) {
+                        trade.journal_entry = null;
+                    }
+                    renderTrades();
+                    loadStatistics();
+                }
+            } catch (error) {
+                console.error('Ошибка удаления:', error);
+            }
+        }
+
+        function formatDateTime(dateStr) {
+            if (!dateStr) return '—';
+            try {
+                const date = new Date(dateStr);
+                const day = String(date.getDate()).padStart(2, '0');
+                const month = String(date.getMonth() + 1).padStart(2, '0');
+                const year = date.getFullYear();
+                const hours = String(date.getHours()).padStart(2, '0');
+                const minutes = String(date.getMinutes()).padStart(2, '0');
+                const seconds = String(date.getSeconds()).padStart(2, '0');
+                return `${day}.${month}.${year} ${hours}:${minutes}:${seconds}`;
+            } catch (e) {
+                return dateStr || '—';
+            }
+        }
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function getCommentPreview(comment) {
+            if (!comment) return '';
+            if (comment.length > 40) {
+                return comment.substring(0, 40) + '...';
+            }
+            return comment;
+        }
+
+        function renderJournalForm(trade) {
+            const entry = trade.journal_entry || {};
+            const dealId = trade.position_id || trade.deal_id;
+            const tags = entry.tags || [];
+            const mistakes = entry.mistakes || [];
+            
+            return `
+                <div class="journal-form">
+                    <div class="full-width">
+                        <div class="form-group">
+                            <label>📝 Комментарий</label>
+                            <textarea id="comment-${dealId}" placeholder="Что пошло по плану? Что можно улучшить?">${escapeHtml(entry.comment || '')}</textarea>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>🏷️ Теги</label>
+                        <div class="tags-input" id="tags-${dealId}">
+                            ${tags.map(tag => `<span class="tag">${escapeHtml(tag)} <span class="tag-remove">✕</span></span>`).join('')}
+                            <input type="text" class="tag-input-field" placeholder="Добавить тег...">
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>⭐ Оценка сделки</label>
+                        <div class="rating" data-rating="${entry.rating || 0}">
+                            ${[1,2,3,4,5].map(i => `<span class="rating-star ${entry.rating >= i ? 'active' : ''}" data-value="${i}">★</span>`).join('')}
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>😊 Эмоции</label>
+                        <div class="emotion-select">
+                            ${['😊 Спокойствие', '😃 Уверенность', '😰 Страх', '😤 Азарт', '😔 Разочарование', '🤔 Сомнение'].map(e => `
+                                <div class="emotion-option ${entry.emotion === e ? 'selected' : ''}" data-emotion="${e}">${e}</div>
+                            `).join('')}
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>⚠️ Ошибки</label>
+                        <div id="mistakes-${dealId}">
+                            ${mistakes.map((m, i) => `
+                                <div class="mistake-item">
+                                    <input type="text" value="${escapeHtml(m)}" placeholder="Ошибка...">
+                                    <button class="btn btn-danger remove-mistake" style="padding: 4px 8px;">✕</button>
+                                </div>
+                            `).join('')}
+                            <button class="btn btn-secondary add-mistake" style="margin-top: 5px;">+ Добавить ошибку</button>
+                        </div>
+                    </div>
+                    
+                    <div class="full-width" style="display: flex; gap: 12px; margin-top: 20px;">
+                        <button class="btn btn-primary save-journal" data-deal-id="${dealId}">💾 Сохранить запись</button>
+                        ${entry.comment ? `<button class="btn btn-danger delete-journal" data-deal-id="${dealId}">🗑️ Удалить запись</button>` : ''}
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderTrades() {
+            const filtered = filterTrades();
+            const container = document.getElementById('tradesList');
+            
+            if (filtered.length === 0) {
+                container.innerHTML = '<div class="loading">📭 Нет сделок, соответствующих фильтрам</div>';
+                return;
+            }
+            
+            container.innerHTML = filtered.map(trade => {
+                const profitClass = trade.profit > 0 ? 'profit-positive' : 'profit-negative';
+                const profitSymbol = trade.profit > 0 ? '+' : '';
+                const typeIcon = trade.type === 'buy' ? '📈' : '📉';
+                const typeText = trade.type === 'buy' ? 'Покупка' : 'Продажа';
+                const hasComment = trade.journal_entry?.comment;
+                const commentText = hasComment ? getCommentPreview(trade.journal_entry.comment) : '';
+                const tags = trade.journal_entry?.tags || [];
+                const dealId = trade.position_id || trade.deal_id;
+                
+                return `
+                    <div class="trade-row" data-deal-id="${dealId}">
+                        <div style="font-size: 11px;">${formatDateTime(trade.time)}</div>
+                        <div style="font-size: 11px;">${formatDateTime(trade.close_time)}</div>
+                        <div class="duration">${trade.duration || '—'}</div>
+                        <div><strong>${trade.symbol}</strong></div>
+                        <div>${typeIcon} ${typeText}</div>
+                        <div>${trade.volume}</div>
+                        <div class="${profitClass}">${profitSymbol}$${Math.abs(trade.profit).toFixed(2)}</div>
+                        <div class="comment-preview ${hasComment ? 'has-comment' : ''}" onclick="event.stopPropagation(); document.querySelector('.trade-row[data-deal-id=\"${dealId}\"]').classList.toggle('expanded')">
+                            ${hasComment ? '💬 ' + escapeHtml(commentText) : '—'}
+                            <span class="edit-icon" onclick="event.stopPropagation(); document.querySelector('.trade-row[data-deal-id=\"${dealId}\"]').classList.add('expanded')">✏️</span>
+                        </div>
+                        <div class="tags-preview">
+                            ${tags.slice(0, 3).map(tag => `<span class="tag-preview">${escapeHtml(tag)}</span>`).join('')}
+                            ${tags.length > 3 ? `<span class="tag-preview">+${tags.length - 3}</span>` : ''}
+                        </div>
+                        <div class="trade-details">
+                            ${renderJournalForm(trade)}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            
+            setTimeout(attachEventHandlers, 100);
+        }
+        
+        function attachEventHandlers() {
+            // Сохранение записи
+            document.querySelectorAll('.save-journal').forEach(btn => {
+                btn.addEventListener('click', async (e) => {
+                    e.stopPropagation();
+                    const dealId = btn.dataset.dealId;
+                    
+                    const comment = document.getElementById(`comment-${dealId}`)?.value || '';
+                    
+                    const tagsContainer = document.getElementById(`tags-${dealId}`);
+                    const tags = Array.from(tagsContainer.querySelectorAll('.tag'))
+                        .map(tag => tag.textContent.replace('✕', '').trim());
+                    
+                    const ratingContainer = tagsContainer?.closest('.journal-form')?.querySelector('.rating');
+                    const rating = parseInt(ratingContainer?.dataset.rating || '0');
+                    
+                    const selectedEmotion = tagsContainer?.closest('.journal-form')?.querySelector('.emotion-option.selected');
+                    const emotion = selectedEmotion?.dataset.emotion || '';
+                    
+                    const mistakesContainer = document.getElementById(`mistakes-${dealId}`);
+                    const mistakes = Array.from(mistakesContainer?.querySelectorAll('input') || [])
+                        .map(input => input.value)
+                        .filter(v => v.trim());
+                    
+                    await saveJournalEntry(dealId, { comment, tags, rating, emotion, mistakes });
+                });
+            });
+            
+            // Удаление записи
+            document.querySelectorAll('.delete-journal').forEach(btn => {
+                btn.addEventListener('click', async (e) => {
+                    e.stopPropagation();
+                    const dealId = btn.dataset.dealId;
+                    await deleteJournalEntry(dealId);
+                });
+            });
+            
+            // Добавление тегов
+            document.querySelectorAll('.tag-input-field').forEach(input => {
+                input.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        const tag = input.value.trim();
+                        if (tag) {
+                            const tagsContainer = input.parentElement;
+                            const tagSpan = document.createElement('span');
+                            tagSpan.className = 'tag';
+                            tagSpan.innerHTML = `${escapeHtml(tag)} <span class="tag-remove">✕</span>`;
+                            tagsContainer.insertBefore(tagSpan, input);
+                            input.value = '';
+                            
+                            tagSpan.querySelector('.tag-remove').addEventListener('click', (e) => {
+                                e.stopPropagation();
+                                tagSpan.remove();
+                            });
+                        }
+                    }
+                });
+            });
+            
+            // Удаление тегов
+            document.querySelectorAll('.tag-remove').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    btn.parentElement.remove();
+                });
+            });
+            
+            // Оценка
+            document.querySelectorAll('.rating-star').forEach(star => {
+                star.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const rating = parseInt(star.dataset.value);
+                    const container = star.parentElement;
+                    container.dataset.rating = rating;
+                    container.querySelectorAll('.rating-star').forEach((s, i) => {
+                        if (i < rating) s.classList.add('active');
+                        else s.classList.remove('active');
+                    });
+                });
+            });
+            
+            // Выбор эмоции
+            document.querySelectorAll('.emotion-option').forEach(opt => {
+                opt.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const container = opt.parentElement;
+                    container.querySelectorAll('.emotion-option').forEach(o => o.classList.remove('selected'));
+                    opt.classList.add('selected');
+                });
+            });
+            
+            // Добавление ошибки
+            document.querySelectorAll('.add-mistake').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const container = btn.parentElement;
+                    const mistakeItem = document.createElement('div');
+                    mistakeItem.className = 'mistake-item';
+                    mistakeItem.innerHTML = `
+                        <input type="text" placeholder="Ошибка...">
+                        <button class="btn btn-danger remove-mistake" style="padding: 4px 8px;">✕</button>
+                    `;
+                    container.insertBefore(mistakeItem, btn);
+                    
+                    mistakeItem.querySelector('.remove-mistake').addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        mistakeItem.remove();
+                    });
+                });
+            });
+            
+            // Удаление ошибки
+            document.querySelectorAll('.remove-mistake').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    btn.parentElement.remove();
+                });
+            });
+        }
+        
+        async function reloadData() {
+            try {
+                await fetch('/api/reload');
+                await loadTrades();
+                alert('Данные обновлены!');
+            } catch (error) {
+                console.error('Ошибка обновления:', error);
+            }
+        }
+        
+        async function exportData() {
+            try {
+                const response = await fetch('/api/export');
+                const data = await response.json();
+                const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `journal_export_${new Date().toISOString().slice(0,19)}.json`;
+                a.click();
+                URL.revokeObjectURL(url);
+            } catch (error) {
+                console.error('Ошибка экспорта:', error);
+            }
+        }
+        
+        document.getElementById('searchInput').addEventListener('input', (e) => {
+            currentSearch = e.target.value;
+            renderTrades();
+        });
+        
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                currentFilter = btn.dataset.filter;
+                renderTrades();
+            });
+        });
+        
+        loadTrades();
+    </script>
+</body>
+</html>
